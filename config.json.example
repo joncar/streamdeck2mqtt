@@ -1,0 +1,5 @@
+{
+    "mqtt_username": "streamdeck",
+    "mqtt_password": "",
+    "mqtt_server": "mqtt.local"
+}
