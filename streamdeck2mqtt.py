@@ -12,14 +12,26 @@ from StreamDeck.ImageHelpers import PILHelper
 import paho.mqtt.client as mqtt
 
 class StreamDeck2MQTT:
-    def render_key_image(self, icon_text, label_text):
+    def render_key_image(self, key):
+        icon_text = key.get('icon')
+        icon_font_name = key.get('icon_font', 'mdi')
+        label_text = key.get('text')
+
         image = PILHelper.create_image(self.deck)
 
         draw = ImageDraw.Draw(image)
 
-        if icon_text:
+        if icon_text and icon_font_name == 'emoji':
+            icon_size = 150
+            icon = Image.new("RGB", (icon_size, icon_size), 'black')
+            icon_draw = ImageDraw.Draw(icon)
+            icon_draw.text((int(icon_size/2), int(icon_size/2)), text=icon_text, font=self.icon_emoji_font, anchor="mm", embedded_color=True)
+            
+            icon.thumbnail((image.width - 20, image.width - 20), Image.LANCZOS)
+            image.paste(icon, (10, 10))
+        elif icon_text and icon_font_name == 'mdi':
             v = (image.height - 20) if label_text else image.height
-            draw.text((image.width / 2, v / 2), text=icon_text, font=self.icon_font, anchor="mm", fill="white")
+            draw.text((int(image.width / 2), int(v / 2)), text=icon_text, font=self.icon_mdi_font, anchor="mm", fill="white", embedded_color=True)
 
         if label_text:
             v = (image.height - 5) if icon_text else (image.height / 2)
@@ -67,7 +79,7 @@ class StreamDeck2MQTT:
             else:
                 key[prop] = value
 
-            image = self.render_key_image(key.get('icon'), key.get('text'))
+            image = self.render_key_image(key)
             with self.deck:
                 self.deck.set_key_image(key_id, image)
 
@@ -88,7 +100,8 @@ class StreamDeck2MQTT:
         self.deck_sn = self.deck.get_serial_number().replace('\0', '').replace('\x01', '')
 
         key_width, key_height = self.deck.key_image_format()['size']
-        self.icon_font = ImageFont.truetype('materialdesignicons-webfont.ttf', key_height)
+        self.icon_mdi_font = ImageFont.truetype('materialdesignicons-webfont.ttf', key_height)
+        self.icon_emoji_font = ImageFont.truetype('NotoColorEmoji.ttf', size=109, layout_engine=ImageFont.LAYOUT_RAQM)
 
         self.label_font = ImageFont.truetype('Roboto-Regular.ttf', 14)
 
